@@ -1,0 +1,38 @@
+name: Monitor italki Chinese Community Tutor
+
+on:
+  schedule:
+    # 每周一 00:00 (北京时区 UTC+8) = 每周日 16:00 UTC
+    # GitHub Actions cron 使用 UTC 时间
+    - cron: '0 16 * * 0'
+  workflow_dispatch: # 支持手动触发，方便测试
+
+permissions:
+  contents: write # 允许提交状态文件回仓库
+
+jobs:
+  monitor:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - run: pip install -r requirements.txt
+
+      - name: Run monitor
+        env:
+          SMTP_HOST: ${{ secrets.SMTP_HOST }}
+          SMTP_PORT: ${{ secrets.SMTP_PORT }}
+          SMTP_USER: ${{ secrets.SMTP_USER }}
+          SMTP_PASS: ${{ secrets.SMTP_PASS }}
+          MAIL_TO: ${{ secrets.MAIL_TO }}
+        run: python src/monitor.py
+
+      - name: Commit state
+        uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          commit_message: 'chore: update last status [skip ci]'
+          file_pattern: state/last_status.json

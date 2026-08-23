@@ -1,0 +1,12 @@
+# 本地测试产物
+page.html
+article.json
+body.html
+parse_test.py
+__pycache__/
+*.pyc
+.env
+
+# IDE / 工具配置目录
+.arts/
+.codeartsdoer/
