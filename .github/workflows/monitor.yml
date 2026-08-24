@@ -2,19 +2,45 @@ name: Monitor italki Chinese Community Tutor
 
 on:
   schedule:
-    # 每周一 00:00 (北京时区 UTC+8) = 每周日 16:00 UTC
-    # GitHub Actions cron 使用 UTC 时间
-    - cron: '0 16 * * 0'
-  workflow_dispatch: # 支持手动触发，方便测试
+    # 所有时间均为北京时间(UTC+8)周一，每3小时一次，覆盖 italki 美国时区周一更新窗口
+    # GitHub Actions cron 使用 UTC 时间（北京时间减8小时）
+    - cron: '0 16 * * 0'  # 周一 00:00 CST → 周报模式（发邮件）
+    - cron: '0 19 * * 0'  # 周一 03:00 CST → 检查模式（变化才发）
+    - cron: '0 22 * * 0'  # 周一 06:00 CST → 检查模式
+    - cron: '0 1 * * 1'   # 周一 09:00 CST → 检查模式
+    - cron: '0 4 * * 1'   # 周一 12:00 CST → 检查模式
+    - cron: '0 7 * * 1'   # 周一 15:00 CST → 检查模式
+    - cron: '0 10 * * 1'  # 周一 18:00 CST → 检查模式
+    - cron: '0 13 * * 1'  # 周一 21:00 CST → 检查模式
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: '运行模式：weekly=发周报；check=变化才提醒'
+        required: false
+        default: 'weekly'
+        type: choice
+        options:
+          - weekly
+          - check
 
 permissions:
-  contents: write # 允许提交状态文件回仓库
+  contents: write
 
 jobs:
   monitor:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+
+      - name: Determine mode
+        run: |
+          if [ -n "${{ github.event.inputs.mode }}" ]; then
+            echo "MODE=${{ github.event.inputs.mode }}" >> $GITHUB_ENV
+          elif [ "${{ github.event.schedule }}" = "0 16 * * 0" ]; then
+            echo "MODE=weekly" >> $GITHUB_ENV
+          else
+            echo "MODE=check" >> $GITHUB_ENV
+          fi
 
       - uses: actions/setup-python@v5
         with:
@@ -29,6 +55,7 @@ jobs:
           SMTP_USER: ${{ secrets.SMTP_USER }}
           SMTP_PASS: ${{ secrets.SMTP_PASS }}
           MAIL_TO: ${{ secrets.MAIL_TO }}
+          MODE: ${{ env.MODE }}
         run: python src/monitor.py
 
       - name: Commit state

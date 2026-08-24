@@ -211,6 +211,9 @@ def main():
         send_email(subject, html, cfg)
         sys.exit(2)
 
+    mode = os.environ.get("MODE", "check")
+    print(f"运行模式: {mode}")
+
     last = load_last_state()
     last_status = last["status"] if last else None
     changed = last_status is not None and last_status != current
@@ -220,9 +223,13 @@ def main():
         f"变化: {changed} | 周: {week}"
     )
 
-    subject, html = build_email(current, week, last_status, checked_at, changed)
-    send_email(subject, html, cfg)
-    print(f"邮件已发送: {subject}")
+    should_send = changed or (mode == "weekly")
+    if should_send:
+        subject, html = build_email(current, week, last_status, checked_at, changed)
+        send_email(subject, html, cfg)
+        print(f"邮件已发送: {subject}")
+    else:
+        print(f"状态未变化（{current}），check 模式静默，不发邮件")
 
     save_state({"status": current, "week": week, "checked_at": checked_at})
     print("状态已保存到 state/last_status.json")
