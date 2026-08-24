@@ -4,11 +4,10 @@ on:
   schedule:
     # 所有时间均为北京时间(UTC+8)周一，每3小时一次，覆盖 italki 美国时区周一更新窗口
     # GitHub Actions cron 使用 UTC 时间（北京时间减8小时）
-    - cron: '0 16 * * 0'  # 周一 00:00 CST → 周报模式（发邮件）
+    - cron: '1 4 * * 1'   # 周一 12:01 CST → 周报模式（发邮件）
     - cron: '0 19 * * 0'  # 周一 03:00 CST → 检查模式（变化才发）
     - cron: '0 22 * * 0'  # 周一 06:00 CST → 检查模式
     - cron: '0 1 * * 1'   # 周一 09:00 CST → 检查模式
-    - cron: '0 4 * * 1'   # 周一 12:00 CST → 检查模式
     - cron: '0 7 * * 1'   # 周一 15:00 CST → 检查模式
     - cron: '0 10 * * 1'  # 周一 18:00 CST → 检查模式
     - cron: '0 13 * * 1'  # 周一 21:00 CST → 检查模式
@@ -36,7 +35,7 @@ jobs:
         run: |
           if [ -n "${{ github.event.inputs.mode }}" ]; then
             echo "MODE=${{ github.event.inputs.mode }}" >> $GITHUB_ENV
-          elif [ "${{ github.event.schedule }}" = "0 16 * * 0" ]; then
+          elif [ "${{ github.event.schedule }}" = "1 4 * * 1" ]; then
             echo "MODE=weekly" >> $GITHUB_ENV
           else
             echo "MODE=check" >> $GITHUB_ENV

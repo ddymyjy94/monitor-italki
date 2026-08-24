@@ -19,6 +19,7 @@ import os
 import re
 import smtplib
 import sys
+import time
 from datetime import datetime, timezone, timedelta
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
@@ -40,15 +41,31 @@ STATE_FILE = Path("state/last_status.json")
 CST = timezone(timedelta(hours=8))
 
 
-def fetch_article():
-    """通过 Zendesk API 获取文章，返回 article dict"""
+def fetch_article(retries=4):
+    """通过 Zendesk API 获取文章，返回 article dict。
+
+    自动重试：对偶发的 SSL/连接/超时错误最多重试 4 次，每次间隔 2 秒。
+    """
     headers = {"User-Agent": "Mozilla/5.0 (monitor-italki-bot/1.0)"}
-    r = requests.get(ARTICLE_URL, headers=headers, timeout=30)
-    r.raise_for_status()
-    data = r.json()
-    if "article" not in data:
-        raise ValueError(f"API 返回异常，顶层键: {list(data.keys())}")
-    return data["article"]
+    last_err = None
+    for i in range(retries):
+        try:
+            r = requests.get(ARTICLE_URL, headers=headers, timeout=60)
+            r.raise_for_status()
+            data = r.json()
+            if "article" not in data:
+                raise ValueError(f"API 返回异常，顶层键: {list(data.keys())}")
+            return data["article"]
+        except (
+            requests.exceptions.SSLError,
+            requests.exceptions.ConnectionError,
+            requests.exceptions.Timeout,
+        ) as e:
+            last_err = e
+            print(f"第 {i + 1}/{retries} 次爬取失败: {type(e).__name__}: {e}")
+            if i < retries - 1:
+                time.sleep(2)
+    raise last_err
 
 
 def _cell_text(html):
